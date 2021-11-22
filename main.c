@@ -1,7 +1,7 @@
 #define TIME_SCALE (1000000)
 #define HZ (60)
 #define T (TIME_SCALE * 1.0f / HZ)
-#define GRANULARITY (200)
+#define GRANULARITY (200) /*Minimum Allowable Sleep Time*/
 
 int timer()
 {
