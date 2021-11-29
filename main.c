@@ -8,6 +8,11 @@ typedef struct Sensors
     float *data;
 } Sensors;
 
+typedef struct State
+{
+    float x;
+} State;
+
 /**
  * @brief Phases of operation
  * 
@@ -26,15 +31,16 @@ typedef enum Phase
 typedef struct System
 {
     Sensors sensors;
+    State state;
     Phase phase;
 } System;
 
 typedef int Time;
 
 /**
- * @brief OS?MCU system time call
+ * @brief OS/MCU system time call
  * 
- * @return int 
+ * @return int time
  */
 int timer()
 {
@@ -54,7 +60,7 @@ void sleep()
  * @brief System initialization
  * 
  * @param system 
- * @return int 
+ * @return int 0 is success
  */
 int startup(System *system)
 {
@@ -65,8 +71,9 @@ int startup(System *system)
 
 /**
  * @brief System shutdown
+ * Write all acutators to safe states
  * 
- * @return int 
+ * @return int 0 is success
  */
 int shutdown()
 {
@@ -100,6 +107,8 @@ void process_sensors(System *system)
  */
 int control_logic(System *system)
 {
+    system->state; // x+ = Ax + Bu
+                   // y  = Cx + Du
     return 0;
 }
 
