@@ -3,22 +3,38 @@
 #define T (TIME_SCALE * 1.0f / HZ)
 #define GRANULARITY (200) /*Minimum Allowable Sleep Time*/
 
+typedef struct Sensors
+{
+    float *data;
+} Sensors;
+
+typedef struct System
+{
+    Sensors *sensors;
+} System;
+
+typedef int Time;
+
+// System time
 int timer()
 {
 
     return 0;
 }
 
+// OS/MCU call to sleep
 void sleep()
 {
 }
 
-int startup()
+// What needs to occur on system startup
+int startup(System *system)
 {
-
+    initialize_sensors(system->sensors);
     return 0;
 }
 
+// What needs to occur on system shutdown
 int shutdown()
 {
 
@@ -29,11 +45,11 @@ void initialize_sensors(float *sensors)
 {
 }
 
-void process_sensors(float *sensors)
+void process_sensors(System *system)
 {
 }
 
-int control_logic(float *sensors)
+int control_logic(System *system)
 {
     return 0;
 }
@@ -54,27 +70,38 @@ int handle_shutdown_failure(int success)
 
 int main(int *argc, char **argv)
 {
-
-    int success = startup(); // 0 is success
+    System system = {0};
+    int success = startup(&system); // 0 is success
 
     if (!success)
     {
-        float *sensors;
-        initialize_sensors(sensors);
+
         int loop = 1;
-        int delta, curr, prev = timer();
+        Time delta, work, prev = timer();
         while (loop)
         {
 
-            process_sensors(sensors);
-            loop = control_logic(sensors);
+            process_sensors(&system);
+            loop = control_logic(&system);
 
-            curr = timer();
-            if (loop && ((delta = (curr - prev)) < (T - GRANULARITY)))
-                sleep(delta);
+            work = timer();
+            Time elapsed = work;
+            if (loop && ((delta = (elapsed - prev)) < (T - GRANULARITY)))
+            {
+
+                sleep(delta); //shhhhhhhhhhhhhhhhh
+
+                while (loop && ((delta = (elapsed - prev)) < T))
+                {
+                    elapsed = timer();
+                }
+            }
             else
+            {
                 handle_missed_frame();
-            prev = curr;
+            }
+            //Log delta and work
+            prev = elapsed;
         }
         return 0;
     }
