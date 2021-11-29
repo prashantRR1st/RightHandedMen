@@ -8,66 +8,162 @@ typedef struct Sensors
     float *data;
 } Sensors;
 
+/**
+ * @brief Phases of operation
+ * 
+ */
+typedef enum Phase
+{
+    CALIBRATION,
+    PROGRAM,
+    CLOSING
+} Phase;
+
+/**
+ * @brief System struct
+ * 
+ */
 typedef struct System
 {
-    Sensors *sensors;
+    Sensors sensors;
+    Phase phase;
 } System;
 
 typedef int Time;
 
-// System time
+/**
+ * @brief OS?MCU system time call
+ * 
+ * @return int 
+ */
 int timer()
 {
 
     return 0;
 }
 
-// OS/MCU call to sleep
+/**
+ * @brief OS/MCU system sleep call
+ * 
+ */
 void sleep()
 {
 }
 
-// What needs to occur on system startup
+/**
+ * @brief System initialization
+ * 
+ * @param system 
+ * @return int 
+ */
 int startup(System *system)
 {
-    initialize_sensors(system->sensors);
+    system->phase = CALIBRATION;
+    initialize_sensors(&system->sensors);
     return 0;
 }
 
-// What needs to occur on system shutdown
+/**
+ * @brief System shutdown
+ * 
+ * @return int 
+ */
 int shutdown()
 {
 
     return 0;
 }
 
-void initialize_sensors(float *sensors)
+/**
+ * @brief Initialization and calibration of sensors
+ * 
+ * @param sensors 
+ */
+void initialize_sensors(Sensors *sensors)
 {
 }
 
+/**
+ * @brief Polling/Processing of sensors
+ * 
+ * @param system 
+ */
 void process_sensors(System *system)
 {
 }
 
+/**
+ * @brief Control loop logic and writing to actuators
+ * 
+ * @param system 
+ * @return int 
+ */
 int control_logic(System *system)
 {
     return 0;
 }
 
+/**
+ * @brief Logic for handling different phases of the system (state machine)
+ * 
+ * @param system 
+ */
+void handle_phase_machine(System *system)
+{
+    switch (system->phase)
+    {
+    case CALIBRATION:
+    {
+    }
+    break;
+    case PROGRAM:
+    {
+    }
+    break;
+    case CLOSING:
+    {
+    }
+    break;
+    }
+}
+
+/**
+ * @brief PANIC AND SHOOT THE SHERRIF
+ * 
+ */
 void handle_missed_frame()
 {
 }
 
+/**
+ * @brief Mission failed
+ * 
+ * @param success 
+ * @return int 
+ */
 int handle_startup_failure(int success)
 {
     return 0;
 }
 
+/**
+ * @brief Cant even shutdown correctly, kill me
+ * 
+ * @param success 
+ * @return int 
+ */
 int handle_shutdown_failure(int success)
 {
     return 0;
 }
 
+/**
+ * @brief pain
+ * 
+ * @param argc 
+ * @param argv 
+ * @return int 
+ */
 int main(int *argc, char **argv)
 {
     System system = {0};
