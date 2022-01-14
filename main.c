@@ -1,17 +1,35 @@
+#include "platform.h"
+
 #define TIME_SCALE (1000000)
 #define HZ (60)
 #define T (TIME_SCALE * 1.0f / HZ)
 #define GRANULARITY (200) /*Minimum Allowable Sleep Time*/
+#define SECOND (1)
+#define MINUTE (SECOND * 60)
+#define HOUR (MINUTE * 60)
+#define MAX_DURATION (HOUR)
 
 typedef struct Sensors
 {
-    float *data;
+    float x;
 } Sensors;
 
 typedef struct State
 {
     float x;
 } State;
+
+typedef struct Program
+{
+    int size;
+    State input[MAX_DURATION];
+} Program;
+
+typedef struct SensorHistory
+{
+    int size;
+    Sensors history[MAX_DURATION];
+} SensorHistory;
 
 /**
  * @brief Phases of operation
@@ -30,31 +48,13 @@ typedef enum Phase
  */
 typedef struct System
 {
-    Sensors sensors;
+    Program program;
+    SensorHistory history;
     State state;
+    Sensors sensors;
     Phase phase;
+    Time time;
 } System;
-
-typedef int Time;
-
-/**
- * @brief OS/MCU system time call
- * 
- * @return int time
- */
-int timer()
-{
-
-    return 0;
-}
-
-/**
- * @brief OS/MCU system sleep call
- * 
- */
-void sleep()
-{
-}
 
 /**
  * @brief System initialization
@@ -64,7 +64,10 @@ void sleep()
  */
 int startup(System *system)
 {
+    system->program.size = 0;
+    system->history.size = 0;
     system->phase = CALIBRATION;
+    system->time = 0;
     initialize_sensors(&system->sensors);
     return 0;
 }
@@ -88,6 +91,7 @@ int shutdown()
  */
 void initialize_sensors(Sensors *sensors)
 {
+    sensors = 0;
 }
 
 /**
