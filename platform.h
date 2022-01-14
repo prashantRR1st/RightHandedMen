@@ -1,6 +1,8 @@
 #ifndef RHM_PLATFORM_H
 #define RHM_PLATFORM_H
 
+#include <stdio.h>
+
 typedef int Time;
 
 /**
@@ -8,26 +10,30 @@ typedef int Time;
  * 
  * @return int time
  */
-Time timer()
-{
-
-    return 0;
-}
+Time timer();
 
 /**
  * @brief OS/MCU system sleep call
  * 
  */
-void sleep()
-{
-}
+void sleep();
 
 
 
-void log(const char *format, ...)
-{
-    va_list(args);
-    printf("[%s]\t", now())
-}
+/**
+ * @brief OS/MCU system print call
+ * 
+ * @param format 
+ * @param ... 
+ */
+void log(const char *format, ...);
+
+/**
+ * @brief OS/MCU system file write
+ * 
+ * @param format 
+ * @param ... 
+ */
+void flog(FILE* f, const char *format, ...);
 
 #endif
