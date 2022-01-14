@@ -109,15 +109,16 @@ int control_logic(System *system)
 {
     system->state; // x+ = Ax + Bu
                    // y  = Cx + Du
-    return 0;
+    return 1;
 }
 
 /**
  * @brief Logic for handling different phases of the system (state machine)
  * 
  * @param system 
+ * @return int 
  */
-void handle_phase_machine(System *system)
+int handle_phase_machine(System *system)
 {
     switch (system->phase)
     {
@@ -134,6 +135,8 @@ void handle_phase_machine(System *system)
     }
     break;
     }
+
+    return 1;
 }
 
 /**
@@ -188,7 +191,8 @@ int main(int *argc, char **argv)
 
             process_sensors(&system);
             loop = control_logic(&system);
-
+            loop = handle_phase_machine(&system);
+            
             work = timer();
             Time elapsed = work;
             if (loop && ((delta = (elapsed - prev)) < (T - GRANULARITY)))
