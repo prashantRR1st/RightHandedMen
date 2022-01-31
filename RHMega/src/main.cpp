@@ -3,8 +3,8 @@
 // driver pins
 int pulPin = 13; //980 Hz PWM on Mega
 int dirPin = 7;
-int dc = 200;
-int delayTime = 2000;
+int dc = 100;
+int delayTime = 100;
 
 int encoderOutput;
 unsigned long counter = 0; // counting encoder pulses
@@ -45,6 +45,7 @@ void loop(){
     else {
         digitalWrite(pulPin, LOW);
     }
+    
 
     // Read encoders
     /*Serial.println("Serial 1 avail");
