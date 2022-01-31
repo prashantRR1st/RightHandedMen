@@ -30,7 +30,9 @@ void loop(){
     if (Serial.available() > 0)    {
         char inByte = Serial.read();
         if (inByte == 'w')            run = true;
+        else if (inByte == 'a')       digitalWrite(dirPin, HIGH);
         else if (inByte == 's')       run = false;
+        else if (inByte == 'd')       digitalWrite(dirPin, LOW);
         else Serial.println(inByte);
     }
 
