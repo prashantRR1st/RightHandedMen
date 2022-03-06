@@ -9,7 +9,7 @@ export default function StartScreen() {
         <div>
             <Header></Header>
             <Typography gutterBottom variant="h4" component="div">
-                Welcome to Plyo-Metrics
+                Welcome to ISS Plyometric Workout Station
             </Typography>
             <Typography gutterBottom variant="h5" component="div">
                 Please Select a Workout:
