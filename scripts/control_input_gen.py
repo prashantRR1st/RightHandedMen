@@ -61,7 +61,8 @@ def displayData(rawData):
 def processAndStoreRawData(rawData, startIndex, contactIndex, endIndex):
     result = []
     for i in range(contactIndex-1, startIndex-1, -1):
-        rawData[i]["loadCell"] = (2*rawData[i+1]["loadCell"]*rawData[i+1]["imu"]["ax"]-rawData[i+2]["loadCell"]*rawData[i+2]["imu"]["ax"])/(rawData[i]["imu"]["ax"])
+        # rawData[i]["loadCell"] = (2*rawData[i+1]["loadCell"]*rawData[i+1]["imu"]["ax"]-rawData[i+2]["loadCell"]*rawData[i+2]["imu"]["ax"])/(rawData[i]["imu"]["ax"])
+        rawData[i]["loadCell"] = (1/rawData[i]["imu"]["ax"])*(rawData[i+1]["loadCell"]*rawData[i+1]["imu"]["ax"]-(((rawData[i+2]["millis"]-rawData[i+1]["millis"])*(rawData[i+2]["loadCell"]*rawData[i+2]["imu"]["ax"]-rawData[i+1]["loadCell"]*rawData[i+1]["imu"]["ax"]))/(rawData[i+1]["millis"]-rawData[i]["millis"])))
     
     for idx in range(startIndex, endIndex+1):
         result.append(rawData[idx]["loadCell"])        
