@@ -1,10 +1,11 @@
 import './App.css';
-import WorkoutScreen from './Components/WorkoutScreen';
+import { Link } from "react-router-dom";
+import StartScreen from './Components/StartScreen';
 
 function App(){
   return(
     <div className="App">
-      <WorkoutScreen></WorkoutScreen>
+      <StartScreen></StartScreen>
     </div>
   );
 }
