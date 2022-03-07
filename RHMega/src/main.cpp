@@ -4,36 +4,62 @@
 #include <utility\interrupt_pins.h>
 #include <ezButton.h>
 #include <Servo.h>
+#include <HX711_ADC.h>
+#if defined(ESP8266) || defined(ESP32) || defined(AVR)
+#include <EEPROM.h>
+#endif
 
 // No longer accurate
+#define MAX_OUTPUT (1.0)
 #define LENGTH_ENC (46552)
-#define LENGTH_MM (450.85)
+#define LENGTH_MM (373.85)
 #define POSITION_SCALING_FACTOR (LENGTH_MM / LENGTH_ENC)
 #define DEBOUNCE_MS (50)
-#define VICTOR_PIN (9)
-#define VICTOR_MID (90)
-#define VICTOR_AMPLTIUDE (90)
+#define VICTOR_PIN (6)
+#define ENC_ORANGE CORE_INT3_PIN
+#define ENC_BLUE CORE_INT2_PIN
+#define NEAR_LIMIT CORE_INT0_PIN
+#define FAR_LIMIT CORE_INT4_PIN
+#define HX711_DOUT CORE_INT1_PIN
+#define HX711_SCK (5)
+#define HX711_CAL_TIME (2000)
+#define HX711_CAL_VAL (108.98)
+#define SLOW_ZONE (300.0)
+#define SLOW_POWER_NEAR (0.11)
+#define SLOW_POWER_FAR (0.16)
+
+float loadCellOffset =  75574.25;
 
 bool run = false;
 
-Encoder enc(CORE_INT0_PIN, CORE_INT1_PIN);
-ezButton nearSwitch(CORE_INT2_PIN);
-ezButton farSwitch(CORE_INT3_PIN);
+Encoder enc(ENC_ORANGE, ENC_BLUE);
+ezButton nearSwitch(NEAR_LIMIT);
+ezButton farSwitch(FAR_LIMIT);
 Servo motor;
+HX711_ADC loadCell(HX711_DOUT, HX711_SCK);
 
-float kP = 0.0;
+float kP = -0.0009220;
 float kI = 0.0;
 float kD = 0.0;
 float kF = 0.0;
 float iZone = 0.0;
 float iState = 0.0;
 float prev_err = 0.0;
-float kMinOutput = -1.0;
-float kMaxOutput = 1.0;
+float kMinOutput = -MAX_OUTPUT;
+float kMaxOutput = MAX_OUTPUT;
 float prev_output = 0.0;
 
 float effectiveMin = kMinOutput;
 float effectiveMax = kMaxOutput;
+
+float pos = 0;
+float ref = 0;
+
+float open_u = 0.0;
+float open_u_rate = 0.015;
+float closed_u = 0.0;
+
+float pid_step(float setpoint, float pv);
 
 float clampOutput(float output)
 {
@@ -75,6 +101,11 @@ void resetFar()
     enc.write(LENGTH_ENC);
 }
 
+void resetMid()
+{
+    enc.write(LENGTH_ENC/2);
+}
+
 /**
  * VEX Robotics Victor 888 Motor Controller The Vex Robotics Victor 884 Motor Controller can also be
  * used with this class but may need to be calibrated per the Victor 884 user manual.
@@ -95,14 +126,65 @@ void resetFar()
  * </ul>
  */
 
-#define VICMAX (2390)
-#define VICMAX_THRES (1520)
-#define VICMID (1465)
-#define VICMIN_THRES (1490)
-#define VICMIN (497)
+#define VICMAX (2327)
+#define VICMAX_DEADBAND (1525)
+#define VICMID (1507)
+#define VICMIN_DEADBAND (1490)
+#define VICMIN (687)
 
-int lerp(int low, int high, float alpha){
+float lerp(float low, float high, float alpha)
+{
     return low * (1.0 - alpha) + high * alpha;
+}
+
+float unlerp(float low, float high, float val)
+{
+    return (val - low) /  (high - low);
+}
+
+float remap(float low_old, float high_old, float val, float low, float high){
+    return lerp(low, high, unlerp(low_old, high_old, val));
+}
+
+void processOutput(float output, float pos){
+    nearSwitch.loop();
+    farSwitch.loop();
+
+    if (nearSwitch.isPressed())
+    {
+        restrict_rev();
+        resetNear();
+        return;
+    }
+    else if (nearSwitch.isReleased())
+    {
+        unrestrict_rev();
+    }
+
+    if (farSwitch.isPressed())
+    {
+        restrict_fwd();
+        resetFar();
+        return;
+    }
+    else if (farSwitch.isReleased())
+    {
+        unrestrict_fwd();
+    }
+
+    if(output > 0.0){
+        if(pos >= LENGTH_MM - SLOW_ZONE  && pos < LENGTH_MM){
+            effectiveMax = remap(LENGTH_MM - SLOW_ZONE, LENGTH_MM, pos, kMaxOutput, SLOW_POWER_FAR);
+        } else {
+            unrestrict_fwd();
+        }
+    } else {
+        if(pos <= SLOW_ZONE && pos > 0.0){
+            effectiveMin = remap(0.0, SLOW_ZONE, pos, -SLOW_POWER_NEAR, kMinOutput);
+        }else {
+            unrestrict_rev();
+        }
+    }
 }
 
 void writeMotor(float speed)
@@ -110,10 +192,13 @@ void writeMotor(float speed)
     int res = VICMID;
     float out = clampOutput(speed);
 
-    if(out > 0.0){
-        res = lerp(VICMAX_THRES, VICMAX, out);
-    } else if (out < 0.0) {
-        res = lerp(VICMIN_THRES, VICMIN, -out);
+    if (out > 0.0)
+    {
+        res = floor(lerp(VICMAX_DEADBAND, VICMAX, out));
+    }
+    else if (out < 0.0)
+    {
+        res = floor(lerp(VICMIN_DEADBAND, VICMIN, -out));
     }
 
     motor.writeMicroseconds(res);
@@ -125,52 +210,75 @@ void configMotor()
     writeMotor(0.0);
 }
 
+volatile bool newLoadCellData;
+
+void loadCellReadyISR() {
+  if (loadCell.update()) {
+    newLoadCellData = true;
+  }
+}
+float loadCellVal = 0.0;
+
+void zeroLoadCell(){
+    loadCellOffset += loadCellVal;
+}
+
+void pollLoadCell(){
+    loadCellReadyISR();
+    if(newLoadCellData){
+        loadCellVal = loadCell.getData() - loadCellOffset;
+        newLoadCellData = false;
+    }
+}
+
+void configLoadCell()
+{
+    newLoadCellData = false;
+    loadCell.begin();
+    loadCell.start(HX711_CAL_TIME, false);
+    if (loadCell.getTareTimeoutFlag())
+    {
+        Serial.println("Timeout, check MCU>HX711 wiring and pin designations");
+        while (1);
+    }
+    else
+    {
+        loadCell.setCalFactor(HX711_CAL_VAL);
+    }
+    //attachInterrupt(digitalPinToInterrupt(HX711_DOUT), loadCellReadyISR, FALLING);
+
+    delay(500);
+    pollLoadCell();
+    zeroLoadCell();
+}
+
+
+bool open;
+
+float targetLoad = 1500;
+
 void setup()
 {
     // put your setup code here, to run once:
     Serial.begin(9600);
-    Serial1.begin(9600);
-    Serial.println();
-    Serial.println("Starting...");
 
     nearSwitch.setDebounceTime(DEBOUNCE_MS);
     farSwitch.setDebounceTime(DEBOUNCE_MS);
 
     configMotor();
+    configLoadCell();
+
+    Serial.println("Starting...");
+    open = true;
 }
 
-float oldPos = -999.0;
-float pos = 0;
-float ref = 0;
-
-float open_u = 0.0;
-float open_u_rate = 0.015;
+float tune_rate = 0.00001;
 
 void loop()
 {
-    nearSwitch.loop();
-    farSwitch.loop();
-
-    if (nearSwitch.isPressed())
-    {
-        restrict_rev();
-        resetNear();
-    }
-    else if (nearSwitch.isReleased())
-    {
-        unrestrict_rev();
-    }
-
-    if (farSwitch.isPressed())
-    {
-        restrict_fwd();
-        resetFar();
-    }
-    else if (farSwitch.isReleased())
-    {
-        unrestrict_fwd();
-    }
-
+    if(open) processOutput(open_u, pos);
+    else processOutput(closed_u, pos);
+    
     // receive command from serial terminal
     if (Serial.available() > 0)
     {
@@ -190,23 +298,45 @@ void loop()
             resetNear();
         else if (inByte == 'f')
             resetFar();
-        else if (inByte == 'p')
-            Serial.println(open_u);
+        else if (inByte == 'm')
+            resetMid();
+        else if (inByte == 'p'){
+            if(open) Serial.println(open_u);
+            else Serial.println(closed_u);
+        }
+        else if (inByte == 'e')
+            Serial.println(pos);
+        else if (inByte == 'q')
+            Serial.println(loadCellVal);
+        else if (inByte == 'z')
+            zeroLoadCell();
+        else if (inByte == 'o')
+            open = true;
+        else if (inByte == 'c')
+            open = false;
+        else if (inByte == 't')
+            kP -= tune_rate;
+        else if (inByte == 'u')
+            kP += tune_rate;
+        else if (inByte == 'y')
+            kP = 0;
+        else if (inByte == 'i')
+            Serial.println(kP, 6);
         else
             Serial.println(inByte);
     }
 
-    open_u = clampOutput(open_u);
-
     pos = position();
-    if (pos != oldPos)
-    {
-        oldPos = pos;
-        Serial.println(pos);
-    }
+    pollLoadCell();
 
-    if(run) writeMotor(open_u);
-    else writeMotor(0.0);
+    closed_u = pid_step(targetLoad, loadCellVal);
+
+    if (run){
+        if(open) writeMotor(open_u);
+        else writeMotor(closed_u);
+    } else {
+        writeMotor(0.0);
+    }
 
     // Read encoders
     /*Serial.println("Serial 1 avail");
