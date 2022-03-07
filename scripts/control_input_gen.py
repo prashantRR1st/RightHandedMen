@@ -5,16 +5,25 @@ import serial
 
 def initPorts():
     imuPort = serial.Serial(port = "COM5", baudrate=57600, timeout=1)
-    loadCellPort = serial.Serial(port = "COM4", baudrate=57600, timeout=1)
+    loadCellPort = serial.Serial(port = "COM6", baudrate=57600, timeout=1)
     return loadCellPort, imuPort
 
 def decodeLoadCellData(serialData):
     raw = serialData.decode().splitlines()
     if (len(raw)>0):
-        rawSplit = raw[0].split(',')
+        rawSplit = raw[0].split(':')
         if (len(rawSplit)==2):
-            return(rawSplit[1]) 
+            return(rawSplit[1])
+        elif (len(rawSplit)==1):
+            return(rawSplit[0])
+
     return('')
+
+def decodeIMUData(imuExtract):
+    ax = imuExtract[0].split('=')
+    if len(imuExtract) == 3 and len(ax)==2:
+        return imuExtract[0].split('=')[1], imuExtract[1], imuExtract[2]
+    return '', '', ''
 
 
 def readSerial(loadCellPort, imuPort):
@@ -25,25 +34,28 @@ def readSerial(loadCellPort, imuPort):
         loopDelta = float(0)
         while 1:
             loopStartTime = time.time()
+            loadCellPort.reset_input_buffer()
             loadCellValue = decodeLoadCellData(loadCellPort.readline())
+            imuPort.reset_input_buffer()
             imuLine = imuPort.readline()
-            imuExtract = imuLine.decode().split(',')
+            ax, ay, az = decodeIMUData(imuLine.decode().split(','))
             
-            if len(loadCellValue) > 0 and len(imuExtract) == 3:
+            if len(loadCellValue) > 0 and len(ax) > 0 and len(ay) > 0 and len(az) > 0:
                 dataObj = {
                     "loadCell": float(loadCellValue),
                     "imu": {
-                        "ax": float(imuExtract[0].split('=')[1]),
-                        "ay": float(imuExtract[1]),
-                        "az": float(imuExtract[2])
+                        "ax": float(ax),
+                        "ay": float(ay),
+                        "az": float(az)
                     },
                     "millis": time.time()*1000
                 }
                 print(dataObj)
                 jsonData["data"].append(dataObj)
-                if loopDelta > 0.5:
-                    loopDelta = 0 
-                time.sleep(0.5-loopDelta)
+                print(loopDelta)
+                # if loopDelta > 0.5:
+                #     loopDelta = 0 
+                #time.sleep(0.5-loopDelta)
             else:
                 print("Waiting for data \n")
             
@@ -62,7 +74,13 @@ def processAndStoreRawData(rawData, startIndex, contactIndex, endIndex):
     result = []
     for i in range(contactIndex-1, startIndex-1, -1):
         # rawData[i]["loadCell"] = (2*rawData[i+1]["loadCell"]*rawData[i+1]["imu"]["ax"]-rawData[i+2]["loadCell"]*rawData[i+2]["imu"]["ax"])/(rawData[i]["imu"]["ax"])
-        rawData[i]["loadCell"] = (1/rawData[i]["imu"]["ax"])*(rawData[i+1]["loadCell"]*rawData[i+1]["imu"]["ax"]-(((rawData[i+2]["millis"]-rawData[i+1]["millis"])*(rawData[i+2]["loadCell"]*rawData[i+2]["imu"]["ax"]-rawData[i+1]["loadCell"]*rawData[i+1]["imu"]["ax"]))/(rawData[i+1]["millis"]-rawData[i]["millis"])))
+        accn_i = 0.0001
+        t_1_0_delta = 0.0001
+        if (rawData[i]["imu"]["ax"] != 0.0):
+            accn_i = rawData[i]["imu"]["ax"]
+        if (rawData[i+1]["millis"]-rawData[i]["millis"] != 0.0):
+            t_1_0_delta = rawData[i+1]["millis"]-rawData[i]["millis"]
+        rawData[i]["loadCell"] = (1/accn_i)*(rawData[i+1]["loadCell"]*rawData[i+1]["imu"]["ax"]-(((rawData[i+2]["millis"]-rawData[i+1]["millis"])*(rawData[i+2]["loadCell"]*rawData[i+2]["imu"]["ax"]-rawData[i+1]["loadCell"]*rawData[i+1]["imu"]["ax"]))/(t_1_0_delta)))
     
     for idx in range(startIndex, endIndex+1):
         result.append(rawData[idx]["loadCell"])        
