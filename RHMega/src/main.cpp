@@ -187,6 +187,7 @@ void processOutput(float output, float pos){
 }
 
 #define RATE_LIMIT (2.0)
+#define EPSILON_DEADBAND (0.0005)
 
 float prev_out = 0.0;
 void writeMotor(float speed)
@@ -194,8 +195,10 @@ void writeMotor(float speed)
     int res = VICMID;
     float out = clampOutput(speed);
 
-    if(out-prev_out > RATE_LIMIT) out = prev_out+RATE_LIMIT;
-    else if(prev_out-out > RATE_LIMIT) out = prev_out-RATE_LIMIT;
+    if(out > EPSILON_DEADBAND || out < EPSILON_DEADBAND){
+        if(out-prev_out > RATE_LIMIT) out = prev_out+RATE_LIMIT;
+        else if(prev_out-out > RATE_LIMIT) out = prev_out-RATE_LIMIT;
+    }
 
     if (out > 0.0)
     {
@@ -260,7 +263,7 @@ void configLoadCell()
 
 bool open;
 
-float targetLoad = 1500;
+float targetLoad = 1000;
 
 void setup()
 {
