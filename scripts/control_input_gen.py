@@ -44,8 +44,8 @@ def readSerial(loadCellPort, imuPort):
                 dataObj = {
                     "loadCell": float(loadCellValue),
                     "imu": {
-                        "ax": float(ax),
-                        "ay": float(ay),
+                        "ax": float(ax)*9.81/230,
+                        "ay": float(ay), # no need to convert
                         "az": float(az)
                     },
                     "millis": time.time()*1000
@@ -83,10 +83,14 @@ def processAndStoreRawData(rawData, startIndex, contactIndex, endIndex):
         rawData[i]["loadCell"] = (1/accn_i)*(rawData[i+1]["loadCell"]*rawData[i+1]["imu"]["ax"]-(((rawData[i+2]["millis"]-rawData[i+1]["millis"])*(rawData[i+2]["loadCell"]*rawData[i+2]["imu"]["ax"]-rawData[i+1]["loadCell"]*rawData[i+1]["imu"]["ax"]))/(t_1_0_delta)))
     
     for idx in range(startIndex, endIndex+1):
-        result.append(rawData[idx]["loadCell"])        
+        result.append(int(rawData[idx]["loadCell"]))        
 
-    with open('result.json', 'w', encoding='utf-8') as f:
+    with open('../user-interface/src/generated_input.json', 'w') as f:
         json.dump(result, f, ensure_ascii=False, indent=4)
+
+    with open('../user-interface/src/generated_input', 'ab') as f:
+        for item in result:
+            f.write(int(item).to_bytes(4, byteorder='big', signed=True))
     
 
 if __name__ == '__main__':
