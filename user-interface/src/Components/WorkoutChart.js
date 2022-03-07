@@ -8,7 +8,7 @@ import {
     YAxis,
     CartesianGrid
 } from 'recharts';
-import results from "../result.json"
+import results from "../generated_input.json"
 
 function  getResultsData() {
     let displayData = [];
