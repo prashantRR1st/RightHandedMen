@@ -37,7 +37,7 @@ ezButton farSwitch(FAR_LIMIT);
 Servo motor;
 HX711_ADC loadCell(HX711_DOUT, HX711_SCK);
 
-float kP = -0.0009220;
+float kP = -0.0004220;
 float kI = 0.0;
 float kD = 0.0;
 float kF = 0.0;
@@ -186,7 +186,7 @@ void processOutput(float output, float pos){
     }
 }
 
-#define RATE_LIMIT (2.0)
+#define RATE_LIMIT (0.005)
 #define EPSILON_DEADBAND (0.0005)
 
 float prev_out = 0.0;
@@ -195,19 +195,13 @@ void writeMotor(float speed)
     int res = VICMID;
     float out = clampOutput(speed);
 
-    if(out > EPSILON_DEADBAND || out < EPSILON_DEADBAND){
+    if(out > EPSILON_DEADBAND || out < -EPSILON_DEADBAND){
         if(out-prev_out > RATE_LIMIT) out = prev_out+RATE_LIMIT;
         else if(prev_out-out > RATE_LIMIT) out = prev_out-RATE_LIMIT;
     }
 
-    if (out > 0.0)
-    {
-        res = floor(lerp(VICMAX_DEADBAND, VICMAX, out));
-    }
-    else if (out < 0.0)
-    {
-        res = floor(lerp(VICMIN_DEADBAND, VICMIN, -out));
-    }
+    if (out > 0.0)          res = floor(lerp(VICMAX_DEADBAND, VICMAX, out));
+    else if (out < 0.0)     res = floor(lerp(VICMIN_DEADBAND, VICMIN, -out));
     prev_out = out;
     motor.writeMicroseconds(res);
 }
