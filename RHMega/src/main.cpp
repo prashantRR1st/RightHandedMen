@@ -9,7 +9,6 @@
 #include <EEPROM.h>
 #endif
 
-// No longer accurate
 #define MAX_OUTPUT (1.0)
 #define LENGTH_ENC (46552)
 #define LENGTH_MM (373.85)
@@ -187,10 +186,16 @@ void processOutput(float output, float pos){
     }
 }
 
+#define RATE_LIMIT (2.0)
+
+float prev_out = 0.0;
 void writeMotor(float speed)
 {
     int res = VICMID;
     float out = clampOutput(speed);
+
+    if(out-prev_out > RATE_LIMIT) out = prev_out+RATE_LIMIT;
+    else if(prev_out-out > RATE_LIMIT) out = prev_out-RATE_LIMIT;
 
     if (out > 0.0)
     {
@@ -200,7 +205,7 @@ void writeMotor(float speed)
     {
         res = floor(lerp(VICMIN_DEADBAND, VICMIN, -out));
     }
-
+    prev_out = out;
     motor.writeMicroseconds(res);
 }
 void configMotor()
