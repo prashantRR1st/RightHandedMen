@@ -71,9 +71,11 @@ def displayData(rawData):
         print(idx, " loadCell: ", dataObj["loadCell"] ," imu_ax: ", dataObj["imu"]["ax"], " imu_ay: ", dataObj["imu"]["ay"], " imu_az: ", dataObj["imu"]["az"], " millis: ", dataObj["millis"] )
 
 def processAndStoreRawData(rawData, startIndex, contactIndex, endIndex):
-    result = []
+    result = {
+        'buffer': [],
+        'totalTime': rawData[endIndex]["millis"]-rawData[startIndex]["millis"]
+    }
     for i in range(contactIndex-1, startIndex-1, -1):
-        # rawData[i]["loadCell"] = (2*rawData[i+1]["loadCell"]*rawData[i+1]["imu"]["ax"]-rawData[i+2]["loadCell"]*rawData[i+2]["imu"]["ax"])/(rawData[i]["imu"]["ax"])
         accn_i = 0.0001
         t_1_0_delta = 0.0001
         if (rawData[i]["imu"]["ax"] != 0.0):
@@ -83,13 +85,13 @@ def processAndStoreRawData(rawData, startIndex, contactIndex, endIndex):
         rawData[i]["loadCell"] = (1/accn_i)*(rawData[i+1]["loadCell"]*rawData[i+1]["imu"]["ax"]-(((rawData[i+2]["millis"]-rawData[i+1]["millis"])*(rawData[i+2]["loadCell"]*rawData[i+2]["imu"]["ax"]-rawData[i+1]["loadCell"]*rawData[i+1]["imu"]["ax"]))/(t_1_0_delta)))
     
     for idx in range(startIndex, endIndex+1):
-        result.append(int(rawData[idx]["loadCell"]))        
+        result['buffer'].append(int(rawData[idx]["loadCell"]))        
 
     with open('../user-interface/src/generated_input.json', 'w') as f:
         json.dump(result, f, ensure_ascii=False, indent=4)
 
     with open('../user-interface/src/generated_input', 'ab') as f:
-        for item in result:
+        for item in result['buffer']:
             f.write(int(item).to_bytes(4, byteorder='big', signed=True))
     
 
