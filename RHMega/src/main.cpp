@@ -9,6 +9,8 @@
 #include <EEPROM.h>
 #endif
 
+#include "ref.h"
+
 #define MAX_OUTPUT (1.0)
 #define LENGTH_ENC (46552)
 #define LENGTH_MM (373.85)
@@ -52,7 +54,7 @@ float effectiveMin = kMinOutput;
 float effectiveMax = kMaxOutput;
 
 float pos = 0;
-float ref = 0;
+float pos_ref = 0;
 
 float open_u = 0.0;
 float open_u_rate = 0.015;
