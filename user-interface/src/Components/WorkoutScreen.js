@@ -8,9 +8,9 @@ export default function WorkoutScreen() {
     return(
         <div>
             <Header></Header>
-            <h1>Workout</h1>
+            <h1 style={{textAlign: 'center'}}>Workout</h1>
             <WorkoutChart></WorkoutChart>
-            <Link to="/summary">
+            <Link to="/summary" style={{padding: 100}}>
                 <Button variant="contained">
                     <span>End Workout</span>
                 </Button>

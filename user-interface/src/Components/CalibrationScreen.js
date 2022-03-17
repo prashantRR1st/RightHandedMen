@@ -5,6 +5,7 @@ import Button from '@mui/material/Button';
 import Modal from '@mui/material/Modal';
 import Typography from '@mui/material/Typography';
 import WorkoutChart from "./WorkoutChart";
+import CalibrationChart from "./CalibrationChart";
 
 const style = {
     position: 'absolute',
@@ -29,7 +30,7 @@ export default function CalibrationScreen() {
             <Typography gutterBottom variant="h4" component="div">
                 Calibration
             </Typography>
-            <WorkoutChart></WorkoutChart>
+            <CalibrationChart></CalibrationChart>
             <Link to="/workout">
                 <Button variant="contained">
                     <span>Begin Workout</span>

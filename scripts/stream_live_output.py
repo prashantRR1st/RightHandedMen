@@ -25,9 +25,8 @@ def dumpSerialData(controlOutputPort):
             controlOutputPort.reset_input_buffer()
             loadCellValue = decodeLoadCellData(controlOutputPort.readline())
             if len(loadCellValue)>0:
-                print(loadCellValue)
                 outputBuffer.append(float(loadCellValue))
-                with open('../user-interface/src/tracking_output.json', 'w', encoding='utf-8') as f:
+                with open('server_folder/tracking_output.json', 'w', encoding='utf-8') as f:
                     json.dump((outputBuffer), f, ensure_ascii=False, indent=4)
     except (KeyboardInterrupt, SystemExit) as exErr:
         print("Inturrupt: ", exErr)
