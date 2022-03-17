@@ -78,7 +78,8 @@ def backInterpolateFromContact(rawData, startIndex, contactIndex):
             accn_i = rawData[i]["imu"]["ax"]
         if (rawData[i+1]["millis"]-rawData[i]["millis"] != 0.0):
             t_1_0_delta = rawData[i+1]["millis"]-rawData[i]["millis"]
-        rawData[i]["loadCell"] = (1/accn_i)*(rawData[i+1]["loadCell"]*rawData[i+1]["imu"]["ax"]-(((rawData[i+2]["millis"]-rawData[i+1]["millis"])*(rawData[i+2]["loadCell"]*rawData[i+2]["imu"]["ax"]-rawData[i+1]["loadCell"]*rawData[i+1]["imu"]["ax"]))/(t_1_0_delta)))
+        backInterpolatedValue = (1/accn_i)*(rawData[i+1]["loadCell"]*rawData[i+1]["imu"]["ax"]-(((rawData[i+2]["millis"]-rawData[i+1]["millis"])*(rawData[i+2]["loadCell"]*rawData[i+2]["imu"]["ax"]-rawData[i+1]["loadCell"]*rawData[i+1]["imu"]["ax"]))/(t_1_0_delta)))
+        rawData[i]["loadCell"] = backInterpolatedValue if backInterpolatedValue>=0 else 0
     return rawData
 
 def eliminateOutliersIQR(rawData): # to handle observed (sudden) sensor reading drop-offs
@@ -106,9 +107,11 @@ def processAndStoreRawData(rawData, startIndex, contactIndex, endIndex):
     rawData = eliminateOutliersIQR(rawData)
     rawData = backInterpolateFromContact(rawData, startIndex, contactIndex)
     
+    offset = 100 #grams
     for idx in range(startIndex, endIndex+1):
-        result['buffer'].append(int(rawData[idx]["loadCell"]))   
+        result['buffer'].append(int(rawData[idx]["loadCell"]+offset))   
 
+    result['buffer'].append(0)
     sendToFile(result)
 
 if __name__ == '__main__':

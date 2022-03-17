@@ -1,4 +1,4 @@
-import { Component } from "react";
+import React, { Component, useState, useEffect, useRef } from 'react';
 import {
     LineChart,
     ResponsiveContainer,
@@ -8,51 +8,49 @@ import {
     YAxis,
     CartesianGrid
 } from 'recharts';
+import useInterval from "./useInterval";
 import results from "../generated_input.json"
 
-function  getResultsData() {
-    let displayData = [];
+export default function WorkoutChart() {
+    let [data, setData] = useState();
 
-    results.forEach((element, index) => {
-        displayData.push(
-            {
-                time: index,
-                force: element
-            }
-        )
-    })
-    console.log(displayData);
-    return(displayData);
-}
+    useInterval(() => {
+        const fetchData = async () => {
+            const res = await fetch('http://127.0.0.1:8887/tracking_output.json', {mode:'cors'});
+            const json = await res.json();
+            let displayData = [];
 
-export default class WorkoutChart extends Component{
-    // time-force data
-    // data = [
-    //     {time: 1, force: 11,},
-    //     {time: 2, force: 15,},
-    //     {time: 3, force: 5,},
-    //     {time: 4, force: 10,},
-    //     {time: 5, force: 9,},
-    //     {time: 6,force: 10,},
-    // ];
-    
-    data = getResultsData();
-    render(){
-        return(
-            <div>
-                <ResponsiveContainer width="100%" aspect={3}>
-                    <LineChart data={this.data} margin={{ right: 300 }}>
-                        <CartesianGrid />
-                            <XAxis dataKey="time (s)" interval={'preserveStartEnd'} />
-                        <YAxis></YAxis>
-                        <Legend />
-                        <Tooltip />
-                        <Line dataKey="force"
-                            stroke="black" activeDot={{ r: 8 }} />
-                    </LineChart>
-                </ResponsiveContainer>
-                
-            </div> 
-        );
-    }
+            json.forEach((element, index) => {
+                let results_len = results['buffer'].length;
+                let profile_index = results_len > index? index : index%results_len;
+                displayData.push(
+                    {
+                        time: index,
+                        live_force: element,
+                        profile: results['buffer'][profile_index]
+                    }
+                );
+            })
+            setData(displayData);
+        };
+        fetchData();
+      }, 10);
+
+
+    return(
+        <div>
+            <ResponsiveContainer width="100%" aspect={3}>
+                <LineChart data={data} margin={{ left: 100, right: 100, top: 30, bottom: 30 }}>
+                    <CartesianGrid />
+                        <XAxis dataKey="time (s)" interval={'preserveStartEnd'} />
+                    <YAxis></YAxis>
+                    <Legend />
+                    <Tooltip />
+                    <Line dataKey="live_force" stroke="black" activeDot={{ r: 8 }} />
+                    <Line dataKey="profile" stroke="red" activeDot={{ r: 8 }} />
+                </LineChart>
+            </ResponsiveContainer>
+            
+        </div> 
+    );
 };
