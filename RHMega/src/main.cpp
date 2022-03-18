@@ -11,6 +11,8 @@
 
 #include "ref.h"
 
+
+
 #define MAX_OUTPUT (1.0)
 #define LENGTH_ENC (46552)
 #define LENGTH_MM (373.85)
@@ -26,8 +28,8 @@
 #define HX711_CAL_TIME (2000)
 #define HX711_CAL_VAL (108.98)
 #define SLOW_ZONE (300.0)
-#define SLOW_POWER_NEAR (0.11)
-#define SLOW_POWER_FAR (0.16)
+#define SLOW_POWER_NEAR (0.1)
+#define SLOW_POWER_FAR (0.1)
 
 float loadCellOffset =  75574.25;
 
@@ -39,9 +41,9 @@ ezButton farSwitch(FAR_LIMIT);
 Servo motor;
 HX711_ADC loadCell(HX711_DOUT, HX711_SCK);
 
-float kP = -0.0004220;
-float kI = 0.0;
-float kD = 0.0;
+float kP = -0.000234;
+float kI = 0.0; //-0.00000000000003;
+float kD = -0.00000000750;
 float kF = 0.0;
 float iZone = 0.0;
 float iState = 0.0;
@@ -133,20 +135,6 @@ void resetMid()
 #define VICMIN_DEADBAND (1490)
 #define VICMIN (687)
 
-float lerp(float low, float high, float alpha)
-{
-    return low * (1.0 - alpha) + high * alpha;
-}
-
-float unlerp(float low, float high, float val)
-{
-    return (val - low) /  (high - low);
-}
-
-float remap(float low_old, float high_old, float val, float low, float high){
-    return lerp(low, high, unlerp(low_old, high_old, val));
-}
-
 void processOutput(float output, float pos){
     nearSwitch.loop();
     farSwitch.loop();
@@ -173,28 +161,38 @@ void processOutput(float output, float pos){
         unrestrict_fwd();
     }
 
-    if(output > 0.0){
-        if(pos >= LENGTH_MM - SLOW_ZONE  && pos < LENGTH_MM){
+    /*if(output > 0.0){
+        if(pos >= LENGTH_MM - SLOW_ZONE  && pos <= LENGTH_MM){
             effectiveMax = remap(LENGTH_MM - SLOW_ZONE, LENGTH_MM, pos, kMaxOutput, SLOW_POWER_FAR);
         } else {
-            unrestrict_fwd();
+            //unrestrict_fwd();
         }
     } else {
-        if(pos <= SLOW_ZONE && pos > 0.0){
+        if(pos <= SLOW_ZONE && pos >= 0.0){
             effectiveMin = remap(0.0, SLOW_ZONE, pos, -SLOW_POWER_NEAR, kMinOutput);
         }else {
-            unrestrict_rev();
+            //unrestrict_rev();
         }
-    }
+    }*/
 }
 
 #define RATE_LIMIT (0.005)
-#define EPSILON_DEADBAND (0.0005)
+#define EPSILON_DEADBAND (0.0030)
+#define OUTPUT_DEADBAND (0.15)
 
 float prev_out = 0.0;
 void writeMotor(float speed)
 {
     int res = VICMID;
+
+    if(speed > 0){
+        speed = lerp(OUTPUT_DEADBAND, 1.0, speed);
+    }else if (speed < 0){
+        speed = lerp(-OUTPUT_DEADBAND, -1.0, -speed);
+    }else{
+        speed = 0;
+    }
+
     float out = clampOutput(speed);
 
     if(out > EPSILON_DEADBAND || out < -EPSILON_DEADBAND){
@@ -260,6 +258,15 @@ void configLoadCell()
 bool open;
 
 float targetLoad = 1000;
+unsigned long start_t = 0;
+
+unsigned long t(){
+    return millis() - start_t;
+}
+
+void reset_t(){
+    start_t = millis();
+}
 
 void setup()
 {
@@ -271,12 +278,13 @@ void setup()
 
     configMotor();
     configLoadCell();
+    init_ref();
 
     Serial.println("Starting...");
     open = true;
 }
 
-float tune_rate = 0.00001;
+float tune_rate = 0.0000000001;
 
 void loop()
 {
@@ -293,11 +301,11 @@ void loop()
             run = true;
         }
         else if (inByte == 'a')
-            open_u -= open_u_rate;
-        else if (inByte == 's')
+            open_u = -0.01;
+        else if (inByte == 's' || inByte == ' ')
             run = false;
         else if (inByte == 'd')
-            open_u += open_u_rate;
+            open_u = 0.01;
         else if (inByte == 'n')
             resetNear();
         else if (inByte == 'f')
@@ -312,6 +320,8 @@ void loop()
             Serial.println(pos);
         else if (inByte == 'q')
             Serial.println(loadCellVal);
+        else if (inByte == '1')
+            Serial.println(targetLoad);
         else if (inByte == 'z')
             zeroLoadCell();
         else if (inByte == 'o')
@@ -319,19 +329,23 @@ void loop()
         else if (inByte == 'c')
             open = false;
         else if (inByte == 't')
-            kP -= tune_rate;
+            targetLoad = 500;
         else if (inByte == 'u')
-            kP += tune_rate;
+            targetLoad = 1000;
         else if (inByte == 'y')
-            kP = 0;
+            targetLoad = 1500;
         else if (inByte == 'i')
-            Serial.println(kP, 6);
+            targetLoad = 2000;
+        else if (inByte == 'r')
+            reset_t();
         else
             Serial.println(inByte);
     }
 
     pos = position();
     pollLoadCell();
+
+    //targetLoad = ref(t());
 
     closed_u = pid_step(targetLoad, loadCellVal);
 
