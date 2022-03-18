@@ -1,7 +1,7 @@
 #include <Arduino.h>
 #include "ref.h"
 
-#define REF_LENTGH_MS (3.5*1430.0)
+#define REF_LENTGH_MS (1430.0)
 
 extern "C" float ref_signal[] = {
     100,
