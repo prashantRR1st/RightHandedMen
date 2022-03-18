@@ -6,7 +6,7 @@ import Typography from '@mui/material/Typography';
 
 export default function StartScreen() {
     return(
-        <div style={{backgroundColor: '#121212'}}>
+        <div style={{backgroundColor: '#121212', height: '100%'}}>
             <Header></Header>
             <Typography gutterBottom variant="h4" component="div" style={{textAlign: 'center', color: '#ffffff'}}>
                 Welcome to ISS Plyometric Workout Station
