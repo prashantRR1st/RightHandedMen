@@ -5,9 +5,10 @@ import serial
 
 def initPorts():
     controlOutputPort = serial.Serial(port = "COM6", baudrate=57600, timeout=1)
+    time.sleep(3)
     writeSuccess = 0
     while not writeSuccess:
-        writeSuccess = controlOutputPort.write("a".encode())
+        writeSuccess = controlOutputPort.write('a'.encode())
         print(writeSuccess)
     return controlOutputPort
 

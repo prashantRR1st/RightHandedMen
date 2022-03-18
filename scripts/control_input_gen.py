@@ -6,9 +6,11 @@ import serial
 def initPorts():
     imuPort = serial.Serial(port = "COM5", baudrate=57600, timeout=1)
     loadCellPort = serial.Serial(port = "COM6", baudrate=57600, timeout=1)
+    time.sleep(3)
     writeSuccess = 0
     while not writeSuccess:
-        writeSuccess = loadCellPort.write("t".encode())
+        writeSuccess = loadCellPort.write('t'.encode())
+        print(writeSuccess)
     return loadCellPort, imuPort
 
 def decodeLoadCellData(serialData):
