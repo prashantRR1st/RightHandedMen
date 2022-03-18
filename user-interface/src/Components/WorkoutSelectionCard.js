@@ -14,7 +14,7 @@ export default function WorkoutSelectionCard(props) {
         component="img"
         height="250"
         image={props.imgSrc}
-        alt="green iguana"
+        alt={props.imgSrc}
       />
       <CardContent>
         <Typography gutterBottom variant="h5" component="div">

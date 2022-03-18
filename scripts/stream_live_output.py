@@ -5,6 +5,11 @@ import serial
 
 def initPorts():
     controlOutputPort = serial.Serial(port = "COM6", baudrate=57600, timeout=1)
+    time.sleep(3)
+    writeSuccess = 0
+    while not writeSuccess:
+        writeSuccess = controlOutputPort.write('a'.encode())
+        print(writeSuccess)
     return controlOutputPort
 
 def decodeLoadCellData(serialData):
@@ -25,6 +30,7 @@ def dumpSerialData(controlOutputPort):
             controlOutputPort.reset_input_buffer()
             loadCellValue = decodeLoadCellData(controlOutputPort.readline())
             if len(loadCellValue)>0:
+                print(loadCellValue)
                 outputBuffer.append(float(loadCellValue))
                 with open('server_folder/tracking_output.json', 'w', encoding='utf-8') as f:
                     json.dump((outputBuffer), f, ensure_ascii=False, indent=4)
