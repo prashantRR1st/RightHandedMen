@@ -25,14 +25,14 @@ export default function CalibrationScreen() {
     const handleOpen = () => setOpen(true);
     const handleClose = () => setOpen(false);
     return(
-        <div>
+        <div style={{backgroundColor: '#121212', height: '100%'}}>
             <Header></Header>
-            <Typography gutterBottom variant="h4" component="div">
+            <Typography gutterBottom variant="h4" component="div" style={{textAlign: 'center', color: '#ffffff'}}>
                 Calibration
             </Typography>
             <CalibrationChart></CalibrationChart>
-            <Link to="/workout">
-                <Button variant="contained">
+            <Link to="/workout" style={{padding: 100}}>
+                <Button variant="contained" size="large">
                     <span>Begin Workout</span>
                 </Button>
             </Link>

@@ -30,15 +30,15 @@ export default function CalibrationChart() {
 
     return(
         <div>
-            <ResponsiveContainer width="100%" aspect={3}>
-                <LineChart data={data} margin={{ right: 300 }}>
-                    <CartesianGrid />
+            <ResponsiveContainer width="99%" aspect={3}>
+                <LineChart data={data} margin={{ left: 80, right: 100, top: 30, bottom: 30 }}>
+                    <CartesianGrid stroke="#404040" />
                         <XAxis dataKey="time (s)" interval={'preserveStartEnd'} />
                     <YAxis></YAxis>
                     <Legend />
                     <Tooltip />
                     <Line dataKey="force"
-                        stroke="black" activeDot={{ r: 8 }} />
+                        stroke="#f15b04" activeDot={{ r: 8 }} />
                 </LineChart>
             </ResponsiveContainer>
             
