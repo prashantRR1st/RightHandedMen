@@ -11,21 +11,20 @@ function createData(attribute, value) {
   return { attribute, value };
 }
 
-const rows = [
-  createData('Duration (min:sec)', '20:45'),
-  createData('Cycles', 18),
-  createData('Load Scaling (relative to Earth)', 0.7),
-  createData('Accuracy', '82%'),
-];
-
-export default function SummaryTable() {
+export default function SummaryTable(props) {
+  const rows = [
+    createData('Duration (h:m:s.ms)', props.details.duration),
+    createData('Cycles', props.details.cycles),
+    createData('Load Scaling (relative to Earth)', props.details.scale),
+    createData('Error', props.details.error),
+  ];
   return (
-    <TableContainer component={Paper}>
-      <Table sx={{ minWidth: 650 }} aria-label="simple table">
+    <TableContainer component={Paper} style={{background: '#121212'}}>
+      <Table aria-label="simple table">
         <TableHead>
           <TableRow>
-            <TableCell>Attribute</TableCell>
-            <TableCell align="right">Value</TableCell>
+            <TableCell style={{color: '#ffffff'}}>Attribute</TableCell>
+            <TableCell align="right" style={{color: '#ffffff'}}>Value</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
@@ -33,11 +32,12 @@ export default function SummaryTable() {
             <TableRow
               key={row.attribute}
               sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
+              style={{color: '#ffffff'}}
             >
-              <TableCell component="th" scope="row">
+              <TableCell component="th" scope="row" style={{color: '#ffffff'}}>
                 {row.attribute}
               </TableCell>
-              <TableCell align="right">{row.value}</TableCell>
+              <TableCell align="right" style={{color: '#ffffff'}}>{row.value}</TableCell>
             </TableRow>
           ))}
         </TableBody>
