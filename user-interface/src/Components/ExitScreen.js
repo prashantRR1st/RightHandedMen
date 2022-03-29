@@ -35,6 +35,7 @@ export default function ExitScreen() {
             let results_len = results['buffer'].length;
             let displayData = [];
             let errorSum = 0;
+            let scale = 0.15;
         
             json.forEach((element, index) => {
                 let profile_index = results_len > index? index : index%results_len;
@@ -47,7 +48,7 @@ export default function ExitScreen() {
                     }
                 );
                 
-                errorSum = errorSum + ((profileValue-element)**2);
+                errorSum = errorSum + (((profileValue*scale)-element)**2);
                 console.log(errorSum);
             })
             setData(displayData);
@@ -55,7 +56,7 @@ export default function ExitScreen() {
             setDetails({
                 duration: msToTime((results['totalTime']*cycles)),
                 cycles: cycles.toFixed(2),
-                scale: 1,
+                scale: scale,
                 error: ((100*(Math.sqrt(errorSum)/displayData.length)).toFixed(2).toString() + '%')
             });
         }
