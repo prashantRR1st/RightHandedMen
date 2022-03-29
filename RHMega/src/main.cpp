@@ -15,7 +15,7 @@
 
 #define MAX_OUTPUT (1.0)
 #define LENGTH_ENC (46552)
-#define LENGTH_MM (373.85)
+#define LENGTH_MM (369.85)
 #define POSITION_SCALING_FACTOR (LENGTH_MM / LENGTH_ENC)
 #define DEBOUNCE_MS (50)
 #define VICTOR_PIN (6)
@@ -27,7 +27,7 @@
 #define HX711_SCK (5)
 #define HX711_CAL_TIME (2000)
 #define HX711_CAL_VAL (108.98)
-#define SLOW_ZONE (300.0)
+#define SLOW_ZONE (200.0)
 #define SLOW_POWER_NEAR (0.1)
 #define SLOW_POWER_FAR (0.1)
 
@@ -161,19 +161,19 @@ void processOutput(float output, float pos){
         unrestrict_fwd();
     }
 
-    /*if(output > 0.0){
+    if(output > 0.0){
         if(pos >= LENGTH_MM - SLOW_ZONE  && pos <= LENGTH_MM){
             effectiveMax = remap(LENGTH_MM - SLOW_ZONE, LENGTH_MM, pos, kMaxOutput, SLOW_POWER_FAR);
         } else {
-            //unrestrict_fwd();
+            unrestrict_fwd();
         }
     } else {
         if(pos <= SLOW_ZONE && pos >= 0.0){
             effectiveMin = remap(0.0, SLOW_ZONE, pos, -SLOW_POWER_NEAR, kMinOutput);
         }else {
-            //unrestrict_rev();
+            unrestrict_rev();
         }
-    }*/
+    }
 }
 
 #define RATE_LIMIT (0.005)
@@ -257,7 +257,7 @@ void configLoadCell()
 
 bool open;
 
-float targetLoad = 1000;
+float targetLoad = 0.15*9235;
 unsigned long start_t = 0;
 
 unsigned long t(){
@@ -301,11 +301,11 @@ void loop()
             run = true;
         }
         else if (inByte == 'a')
-            open_u = -0.01;
+            open_u += -0.01;
         else if (inByte == 's' || inByte == ' ')
             run = false;
         else if (inByte == 'd')
-            open_u = 0.01;
+            open_u += 0.01;
         else if (inByte == 'n')
             resetNear();
         else if (inByte == 'f')
@@ -345,7 +345,7 @@ void loop()
     pos = position();
     pollLoadCell();
 
-    //targetLoad = ref(t());
+    //targetLoad = 0.5 * ref(t());
 
     closed_u = pid_step(targetLoad, loadCellVal);
 
