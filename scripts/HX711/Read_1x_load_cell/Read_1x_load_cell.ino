@@ -24,43 +24,64 @@
 #endif
 
 //pins:
-const int HX711_dout = 4; //mcu > HX711 dout pin
-const int HX711_sck = 5; //mcu > HX711 sck pin
+const int HX711_dout_a = 4; //mcu > HX711 dout pin (apparatus)
+const int HX711_sck_a = 5; //mcu > HX711 sck pin (apparatus)
+const int HX711_dout_t = 6; //mcu > HX711 dout pin (test)
+const int HX711_sck_t = 7; //mcu > HX711 sck pin (test)
 
 //HX711 constructor:
-HX711_ADC LoadCell(HX711_dout, HX711_sck);
+HX711_ADC LoadCell_a(HX711_dout_a, HX711_sck_a);
+HX711_ADC LoadCell_t(HX711_dout_t, HX711_sck_t);
 
 const int calVal_eepromAddress = 0; // 0 - cal factor for test rig, 1 - cal factor for apparatus
 unsigned long t = 0;
+// default start with test load cell
+bool load_cell = 0; // 0 - test, 1 - apparatus
 
 void setup() {
   Serial.begin(57600); delay(10);
-  Serial.println();
-  Serial.println("Starting...");
 
-  LoadCell.begin();
+  LoadCell_a.begin();
+  LoadCell_t.begin();
+  
   //LoadCell.setReverseOutput(); //uncomment to turn a negative output value to positive
-  float calibrationValue; // calibration value (see example file "Calibration.ino")
-  calibrationValue = 696.0; // uncomment this if you want to set the calibration value in the sketch
+  
+  float calibrationValue_a; // calibration value (see example file "Calibration.ino")
+  float calibrationValue_t;
+  
+  calibrationValue_a = 108.98; // uncomment this if you want to set the calibration value in the sketch
+  calibrationValue_t = 106.99;
+  
 #if defined(ESP8266)|| defined(ESP32)
   //EEPROM.begin(512); // uncomment this if you use ESP8266/ESP32 and want to fetch the calibration value from eeprom
 #endif
-  EEPROM.get(calVal_eepromAddress, calibrationValue); // uncomment this if you want to fetch the calibration value from eeprom
-  Serial.print("Value ");
-  Serial.print(calibrationValue);
-  Serial.print(" saved to EEPROM address: ");
-  Serial.println(calVal_eepromAddress);
+  //EEPROM.get(calVal_eepromAddress, calibrationValue); // uncomment this if you want to fetch the calibration value from eeprom
+  /*Serial.print("Value a: ");
+  Serial.println(calibrationValue_a);
+  Serial.print("Value t: ");
+  Serial.println(calibrationValue_t);*/
 
   unsigned long stabilizingtime = 2000; // preciscion right after power-up can be improved by adding a few seconds of stabilizing time
   boolean _tare = true; //set this to false if you don't want tare to be performed in the next step
-  LoadCell.start(stabilizingtime, _tare);
-  if (LoadCell.getTareTimeoutFlag()) {
-    Serial.println("Timeout, check MCU>HX711 wiring and pin designations");
+  LoadCell_a.start(stabilizingtime, _tare);
+  LoadCell_t.start(stabilizingtime, _tare);
+  
+  if (LoadCell_a.getTareTimeoutFlag()) {
+    //Serial.println("Timeout, check MCU>HX711 wiring and pin designations");
     while (1);
   }
   else {
-    LoadCell.setCalFactor(calibrationValue); // set calibration value (float)
-    Serial.println("Startup is complete");
+    LoadCell_a.setCalFactor(calibrationValue_a); // set calibration value (float)
+    //Serial.println("Startup is complete");
+  }
+
+  if (LoadCell_t.getTareTimeoutFlag()) {
+    //Serial.println("Timeout, check MCU>HX711 wiring and pin designations");
+    while (1);
+  }
+  else {
+    LoadCell_t.setCalFactor(calibrationValue_t); // set calibration value (float)
+    //Serial.println("Startup is complete");
   }
 }
 
@@ -68,29 +89,42 @@ void loop() {
   static boolean newDataReady = 0;
   const int serialPrintInterval = 0; //increase value to slow down serial print activity
 
-  // check for new data/start next conversion:
-  if (LoadCell.update()) newDataReady = true;
-
-  // get smoothed value from the dataset:
-  if (newDataReady) {
-    if (millis() > t + serialPrintInterval) {
-      float i = LoadCell.getData();
-      Serial.print("Load_cell output val: ");
-      Serial.println(i);
-      newDataReady = 0;
-      t = millis();
-    }
-  }
-
-  // receive command from serial terminal, send 't' to initiate tare operation:
+  // get apparatus or test selection
+  // receive command from serial terminal
+  // send 't' or 'a':
   if (Serial.available() > 0) {
     char inByte = Serial.read();
-    if (inByte == 't') LoadCell.tareNoDelay();
+    if (inByte == 'a') load_cell = 1;
+    else if (inByte == 't') load_cell = 0;
   }
-
-  // check if last tare operation is complete:
-  if (LoadCell.getTareStatus() == true) {
-    Serial.println("Tare complete");
+  
+  if (load_cell == 1){
+    // check for new data/start next conversion:
+    if (LoadCell_a.update()) newDataReady = true;
+    
+    // get smoothed value from the dataset:
+    if (newDataReady) {
+      if (millis() > t + serialPrintInterval) {
+        float i = LoadCell_a.getData();
+        Serial.print("Load_cell_a output val: ");
+        Serial.println(i);
+        newDataReady = 0;
+        t = millis();
+      }    
+    }
+  } else if (load_cell == 0){
+    // check for new data/start next conversion:
+    if (LoadCell_t.update()) newDataReady = true;
+    
+    // get smoothed value from the dataset:
+    if (newDataReady) {
+      if (millis() > t + serialPrintInterval) {
+        float i = LoadCell_t.getData();
+        Serial.print("Load_cell_t output val: ");
+        Serial.println(i);
+        newDataReady = 0;
+        t = millis();
+      }    
+    }
   }
-
 }
